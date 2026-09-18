@@ -1,40 +1,18 @@
 # Pond HeyGen Agent
 
 A [Pond Protocol](https://docs.joinpond.ai/update/docs/build-and-publish-an-agent-on-pond)
-example from **Pond-International** that turns HeyGen's video APIs into an
-asynchronous agent. It demonstrates manifest discovery, authenticated requests,
-idempotent task submission, polling, signed artifact delivery, and usage reporting.
+reference implementation from **Pond-International** for asynchronous video
+generation with HeyGen. Use it to learn how to expose an agent through a manifest,
+accept authenticated requests, track tasks, deliver files, and report usage.
 
 HeyGen renders the videos. [Modal](https://modal.com/docs/guide) hosts the Python
-HTTP API, task coordinator, and artifact storage using CPU workers that scale to
-zero. Deploy this example with your own HeyGen and Modal accounts.
+API, task coordinator, and storage using CPU workers that scale to zero. The
+walkthrough below deploys the agent and generates a welcome video from a brief.
 
-## What it supports
-
-The manifest advertises **109 actions**: 107 native HeyGen/wrapper actions and two
-convenience actions:
-
-| Action | Input | Result |
-| --- | --- | --- |
-| `generate_video` | A creative brief, with optional reference files | An MP4 planned and rendered by HeyGen |
-| `generate_presenter_video` | A final script and an avatar or permitted portrait | An MP4 preserving the supplied script |
-
-Both convenience actions accept **5–60 seconds**, defaulting to 30 seconds.
-This is the example agent's policy; upstream limits vary by HeyGen endpoint.
-Native actions cover video creation, translation, lipsync, templates, clips,
-assets, finite batches, and video-producing workflows. Account and webhook
-administration are excluded from the public manifest.
-
-Read the [action and pricing policy](docs/action-policy.md) for render restrictions,
-media limits, and disabled non-video generation actions. The
-[coverage inventory](docs/heygen-coverage.md) maps the pinned HeyGen contract to
-implemented actions. Some provider features require account access; implementation
-and schema coverage do not establish live availability.
-
-## Quick start
+## Set up and deploy
 
 You need Python 3.12 or later, [uv](https://docs.astral.sh/uv/), a Modal account,
-and a HeyGen API key with access to the actions you intend to use.
+and a HeyGen API key with access to video generation.
 
 ```sh
 git clone https://github.com/Pond-International/pond-heygen-agent.git
@@ -45,16 +23,15 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Set `HEYGEN_API_KEY` in your local `.env`, then deploy:
+Edit `.env` to set `HEYGEN_API_KEY`, then run:
 
 ```sh
 uv run python -m pond_heygen_agent.operator setup
 uv run modal deploy -m pond_heygen_agent.modal_app
 ```
 
-Setup generates separate Pond access and artifact signing keys, protects `.env`
-with mode `0600`, and updates the dedicated Modal secret. Keep those keys stable
-across redeployments. Copy the HTTPS base URL printed by Modal:
+Setup initializes the credentials in `.env` and the Modal secret. Copy the HTTPS
+base URL printed by Modal into `AGENT_BASE_URL`:
 
 ```sh
 export AGENT_BASE_URL='https://YOUR-WORKSPACE--pond-heygen-agent-web.modal.run'
@@ -62,85 +39,123 @@ uv run python -m pond_heygen_agent.operator configure --base-url "$AGENT_BASE_UR
 curl --fail --silent --show-error "$AGENT_BASE_URL/health"
 ```
 
-The initial `configure` step makes read-only HeyGen calls to verify credentials
-and discover avatar/voice presets. Check for `generation_ready: true`.
-[Deployment and operations](docs/deployment.md) covers unconfigured deployments,
-custom presets, updates, cleanup, and recovery. Configuration success does not
-submit a paid video or verify every provider action.
+Check for `generation_ready: true`. Initial configuration verifies your HeyGen
+credentials and discovers avatar/voice presets through read-only calls. See
+[deployment and operations](docs/deployment.md) for custom presets, updates,
+and recovery. Rerunning `configure` replaces the configuration record, including
+custom sharing settings.
 
-## Connect to Pond
+## Submit on Pond and configure the access key
 
-Register the deployed HTTPS **base URL** in Pond and set its Access Key to the
-`POND_AGENT_ACCESS_KEY` generated in `.env`. Pond discovers the actions through
-`GET /manifest`. Keep the HeyGen API key in the backend's Modal secret.
+Submit the agent on Pond using the deployed HTTPS **base URL**. Pond reads the
+public `GET /manifest` endpoint to discover its actions and schemas.
 
-The example advertises **$0.13 per completed video-second**. Review and save the
-pricing plan in Pond before accepting paid requests. Usage sums the actual
-durations of distinct completed videos and rounds up once; a 9.7-second output
-reports 10 units. Requested duration is not a billing cap. See
-[metering and price configuration](docs/action-policy.md#video-second-metering).
+**After submitting the agent on Pond, configure its Access Key on the agent
+server.** Copy the Access Key from the agent's publishing page and set
+`POND_AGENT_ACCESS_KEY` in your local `.env` to that exact value. Then update the
+Modal secret and redeploy:
 
-Follow the [Pond agent publishing guide](https://docs.joinpond.ai/update/docs/build-and-publish-an-agent-on-pond)
-for listing setup.
-
-## Make a protocol request
-
-This implementation uses `marketplace-agent` protocol version `1.0`.
-
-| Endpoint | Access | Purpose |
-| --- | --- | --- |
-| `GET /manifest` | Public | Action schemas, examples, capabilities, and pricing |
-| `GET /health` | Public | Configuration readiness without calling HeyGen |
-| `POST /runs` | Bearer key + protocol headers | Validate and submit an idempotent run |
-| `GET /tasks/{task_id}` | Bearer key + protocol version | Poll a task and advance collection |
-| `GET` / `HEAD /artifacts/{artifact_id}` | Signed URL | Download an output until its expiry |
-
-[examples/generate-video.json](examples/generate-video.json) contains a complete
-request envelope. For a read-only native action, use
-[examples/list-voices.json](examples/list-voices.json). The
-[protocol walkthrough](docs/protocol.md) shows submission, polling, retries,
-output negotiation, and errors.
-
-The generation example spends HeyGen credits when submitted to a configured
-deployment.
-
-## How it works
-
-```mermaid
-sequenceDiagram
-    participant P as Pond client
-    participant A as Agent API
-    participant C as Modal coordinator
-    participant H as HeyGen
-    P->>A: POST /runs (run_id + access key)
-    A->>C: Dispatch a short task step
-    A-->>P: 202 queued + task_id
-    C->>H: Submit generation once
-    loop Client polls within task deadline
-        P->>A: GET /tasks/{task_id}
-        A->>C: Dispatch a due task step
-        C->>H: Check generation status
-        A-->>P: Current task state
-    end
-    C->>C: Store artifacts and measured usage
-    P->>A: GET /tasks/{task_id}
-    A-->>P: Completed result + signed URLs + usage
+```sh
+uv run python -m pond_heygen_agent.operator setup
+uv run modal deploy -m pond_heygen_agent.modal_app
 ```
 
-The API and coordinator use a Modal Dict for durable state and a Volume for
-artifacts. A single writer controls provider submission, with at most two active
-provider slots. There is no worker waiting throughout a render, recurring cron,
-or webhook dependency. Client polling drives status collection at intervals of
-at least 20 seconds per task. Runs allow up to 30 minutes.
+Pond and the server must use the same Access Key for authenticated requests.
+Keep the HeyGen and artifact signing keys in the backend; they are separate from
+the Pond Access Key.
 
-Artifacts and signed links are retained for seven days. Cleanup runs on activity;
-physical deletion can occur after expiry. A signed URL grants download access to
-anyone holding it. HeyGen account retention is separate from this agent's storage.
+The example advertises **$0.13 per completed video-second**. Review and save the
+pricing plan in Pond before accepting paid requests. Actual durations of distinct
+completed videos are summed and rounded up once; a 9.7-second output reports 10
+units. See [metering and pricing](docs/action-policy.md#video-second-metering) and
+the [Pond publishing guide](https://docs.joinpond.ai/update/docs/build-and-publish-an-agent-on-pond).
 
-Timeout does not cancel an upstream render or reverse provider charges. Ambiguous
-submissions are never automatically regenerated. See the
-[recovery procedure](docs/deployment.md#recover-an-uncertain-submission) before
-retrying an uncertain job under a new run ID.
+## Try a request
+
+Run these commands from the repository root, in the same shell as the setup
+above. Load the synchronized Pond access key without printing its value:
+
+```sh
+export POND_AGENT_ACCESS_KEY="$(uv run python -c 'from dotenv import dotenv_values; print(dotenv_values(".env")["POND_AGENT_ACCESS_KEY"])')"
+```
+
+The [welcome-video request](examples/generate-video.json) supplies a brief, a
+ten-second target, and the full Pond request envelope. **Submitting it spends
+HeyGen credits.** The target is approximate; billing uses actual completed video
+duration. For a read-only first request, use the [voice-listing example](examples/README.md).
+
+```sh
+curl --fail-with-body --silent --show-error \
+  "$AGENT_BASE_URL/runs" \
+  -H "Authorization: Bearer $POND_AGENT_ACCESS_KEY" \
+  -H 'X-Agent-Protocol-Version: 1.0' \
+  -H 'Idempotency-Key: run_example_video_001' \
+  -H 'Content-Type: application/json' \
+  --data-binary @examples/generate-video.json
+```
+
+A new run returns HTTP 202 with a `task_id`, a status such as `queued`, and
+`poll_after_ms: 20000`. Copy the returned task ID and poll after 20 seconds:
+
+```sh
+export TASK_ID='task_REPLACE_WITH_RETURNED_ID'
+curl --fail-with-body --silent --show-error \
+  "$AGENT_BASE_URL/tasks/$TASK_ID" \
+  -H "Authorization: Bearer $POND_AGENT_ACCESS_KEY" \
+  -H 'X-Agent-Protocol-Version: 1.0'
+```
+
+Repeat the poll at the requested interval until `status` is `completed`, `failed`,
+or `expired`. Polling also drives result collection. On completion, open the
+video's `file.url` in the `artifacts` array, or follow the
+[download instructions](examples/README.md#download-the-result). Save the video
+within seven days; anyone holding its signed URL can access it until expiry.
+
+An unchanged retry with the same `run_id` returns the saved task/result. To start
+a separate video, use a new `run_id` and matching `Idempotency-Key`. Check an
+uncertain provider submission before starting another run: a timeout does not
+cancel HeyGen or reverse charges. The [examples guide](examples/README.md) explains
+retries, errors, and both sample requests.
+
+## Available actions
+
+Start with the two convenience actions:
+
+| Action | Input | Result |
+| --- | --- | --- |
+| `generate_video` | A creative brief with optional reference files | An MP4 planned and rendered by HeyGen |
+| `generate_presenter_video` | A final script and an avatar or permitted portrait | An MP4 preserving the supplied script |
+
+Both accept **5–60 seconds**, defaulting to 30 seconds. This is the example agent's
+policy; upstream limits vary by HeyGen endpoint.
+
+The manifest also exposes 107 native/wrapper actions for a total of **109**.
+These cover video creation, translation, lipsync, templates, clips, assets,
+finite batches, and video-producing workflows. Native actions return JSON metadata
+and negotiated media. Account and webhook administration are excluded. Some
+provider features require additional account access.
+
+Read the [action policy](docs/action-policy.md) for render and media limits, or
+the [coverage inventory](docs/heygen-coverage.md) for the full catalog. The
+[protocol reference](docs/protocol.md) documents endpoints, envelopes, and errors.
+
+## Understand and customize the code
+
+Start with the [code walkthrough](docs/architecture.md). It follows one request
+from the HTTP API through provider submission, task polling, artifact delivery,
+and metering, then identifies the files to change for common customizations.
+
+```text
+src/pond_heygen_agent/   Agent implementation and pinned HeyGen schema
+examples/               Complete requests and submission instructions
+docs/                   Protocol, deployment, architecture, and policy guides
+.env.example            Environment variable template
+pyproject.toml          Dependencies and package configuration
+```
+
+The coordinator uses durable state and a single writer, with at most two active
+provider slots. Work runs in short steps as clients poll; runs allow up to 30
+minutes. See the walkthrough for the deployment boundaries and failure behavior.
 
 ## Development
 
@@ -151,22 +166,8 @@ uv run ruff format --check .
 uv build
 ```
 
-These checks do not call HeyGen. Modal images include `ffmpeg` for measuring
-video duration. Source and wheel builds explicitly select public files, excluding
-local secrets, run ledgers, caches, and worktrees.
-
-| Location | Responsibility |
-| --- | --- |
-| `src/pond_heygen_agent/protocol.py`, `api.py` | Pond manifest, validation, and HTTP interface |
-| `store.py`, `service.py`, `tool_service.py` | Durable task state and execution |
-| `tool_registry.py`, `data/heygen-v3.json` | Pinned HeyGen contract and action schemas |
-| `provider.py`, `tool_runtime.py`, `tool_jobs.py` | Provider requests and completion handling |
-| `media.py`, `media_files.py`, `artifacts.py` | Validated transfers and signed delivery |
-| `video_usage.py`, `duration_probe.py` | Actual output metering |
-| `modal_app.py`, `operator.py` | Deployment and operator commands |
-
-See [registry internals](docs/toolset-coverage.md) for schema compilation and
-completion semantics.
+These checks do not call HeyGen. Source and wheel builds explicitly select public
+files, excluding local secrets, run records, caches, and worktrees.
 
 ## License
 

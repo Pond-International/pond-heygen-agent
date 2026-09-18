@@ -31,10 +31,11 @@ uv run modal deploy -m pond_heygen_agent.modal_app
 | Modal Volume | `pond-heygen-agent-artifacts` | Completed output files |
 
 Setup writes `.env` with mode `0600` and updates the named Modal secret.
-`POND_AGENT_ACCESS_KEY` authenticates Pond callers; `ARTIFACT_SIGNING_KEY` signs
-download links. Preserve these values across deployments. Rotating the access
-key requires updating the Pond listing; rotating the signing key invalidates
-previously issued artifact links.
+It generates an initial `POND_AGENT_ACCESS_KEY` if one is missing so the server
+can start. After submitting the agent on Pond, configure the server with the
+Access Key from the agent's publishing page as described below.
+`ARTIFACT_SIGNING_KEY` signs download links and should remain stable across
+redeployments; rotating it invalidates previously issued artifact links.
 
 Set the base URL to the exact HTTPS URL printed by Modal, without a path:
 
@@ -56,9 +57,27 @@ A code-only redeployment keeps the current Dict configuration.
 
 ## Configure Pond
 
-Use the deployed base URL as the endpoint and `POND_AGENT_ACCESS_KEY` as the
-Access Key. Review the imported actions and pricing before publishing the listing.
-The default plan is:
+Submit the agent on Pond using the deployed HTTPS base URL. Public `/manifest`
+discovery does not require the runtime Access Key.
+
+After submitting the agent, copy the Access Key from its Pond publishing page
+and configure it on the agent server. Edit your local `.env` so
+`POND_AGENT_ACCESS_KEY` is exactly that value, then update Modal:
+
+```sh
+uv run python -m pond_heygen_agent.operator setup
+uv run modal deploy -m pond_heygen_agent.modal_app
+```
+
+These commands sync the key to the Modal secret and start the deployment with
+it. Repeat them when the Pond Access Key changes, preserving
+`ARTIFACT_SIGNING_KEY`. There is no need to rerun `configure` for a key update.
+
+Pond and the server must have matching keys before authenticated runtime checks
+or requests can succeed. `/health` readiness does not verify that match.
+
+Review the imported actions and pricing before publishing the listing. The
+default plan is:
 
 | Field | Value |
 | --- | --- |

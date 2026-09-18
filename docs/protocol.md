@@ -4,6 +4,20 @@ The public manifest declares protocol `marketplace-agent`, version `1.0`.
 It advertises asynchronous tasks and attachments. Streaming, cancellation, and
 feedback endpoints are not implemented.
 
+For commands that submit, poll, and download the included requests, start with
+the [examples guide](../examples/README.md). After submitting the agent on Pond,
+[configure its Access Key on the server](deployment.md#configure-pond) before
+sending authenticated requests. For implementation details, see the
+[code walkthrough](architecture.md).
+
+| Endpoint | Access | Purpose |
+| --- | --- | --- |
+| `GET /manifest` | Public | Action schemas, examples, capabilities, and pricing |
+| `GET /health` | Public | Configuration readiness without calling HeyGen |
+| `POST /runs` | Bearer key + protocol headers | Validate and submit an idempotent run |
+| `GET /tasks/{task_id}` | Bearer key + protocol version | Poll a task and advance collection |
+| `GET` / `HEAD /artifacts/{artifact_id}` | Signed URL | Download an output until its expiry |
+
 ## Discover actions
 
 ```sh

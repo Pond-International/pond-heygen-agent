@@ -33,7 +33,7 @@ exclude = [
 [tool.hatch.build.targets.sdist]
 only-include = [
   "src/pond_heygen_agent", "examples",
-  "docs/deployment.md", "docs/protocol.md", "docs/action-policy.md",
+  "docs/deployment.md", "docs/protocol.md", "docs/action-policy.md", "docs/architecture.md",
   "docs/heygen-coverage.md", "docs/toolset-coverage.md",
   ".env.example", "README.md", "LICENSE", "pyproject.toml", "uv.lock",
 ]
