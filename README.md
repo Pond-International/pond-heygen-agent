@@ -1,6 +1,6 @@
 # Pond HeyGen Agent
 
-A [Pond Protocol](https://docs.joinpond.ai/update/docs/build-and-publish-an-agent-on-pond)
+A [Pond Protocol](https://docs.joinpond.ai/docs/build-and-publish-an-agent-on-pond)
 reference implementation from **Pond-International** for asynchronous video
 generation with HeyGen. Use it to learn how to expose an agent through a manifest,
 accept authenticated requests, track tasks, deliver files, and report usage.
@@ -68,7 +68,7 @@ The example advertises **$0.13 per completed video-second**. Review and save the
 pricing plan in Pond before accepting paid requests. Actual durations of distinct
 completed videos are summed and rounded up once; a 9.7-second output reports 10
 units. See [metering and pricing](docs/action-policy.md#video-second-metering) and
-the [Pond publishing guide](https://docs.joinpond.ai/update/docs/build-and-publish-an-agent-on-pond).
+the [Pond publishing guide](https://docs.joinpond.ai/docs/build-and-publish-an-agent-on-pond).
 
 ## Try a request
 
