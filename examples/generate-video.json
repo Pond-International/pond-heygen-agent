@@ -1,0 +1,35 @@
+{
+  "run_id": "run_example_video_001",
+  "agent_id": "agent_heygen",
+  "conversation_id": "conversation_example_001",
+  "history_truncated": false,
+  "user": {
+    "id": "user_example",
+    "locale": "en-US",
+    "timezone": "UTC"
+  },
+  "action_id": "generate_video",
+  "messages": [
+    {
+      "id": "message_example_001",
+      "role": "user",
+      "created_at": "2026-09-18T12:00:00Z",
+      "parts": [
+        {
+          "type": "text",
+          "text": "Create a short welcome video."
+        }
+      ]
+    }
+  ],
+  "parameters": {
+    "brief": "Create a friendly welcome video for new team members.",
+    "target_duration_seconds": 10
+  },
+  "execution": {
+    "accepted_output_modes": [
+      "video/mp4"
+    ],
+    "deadline_ms": 1800000
+  }
+}

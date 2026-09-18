@@ -1,0 +1,32 @@
+{
+  "run_id": "run_example_voices_001",
+  "agent_id": "agent_heygen",
+  "conversation_id": "conversation_example_001",
+  "history_truncated": false,
+  "user": {
+    "id": "user_example",
+    "locale": "en-US",
+    "timezone": "UTC"
+  },
+  "action_id": "list_voices",
+  "messages": [
+    {
+      "id": "message_example_001",
+      "role": "user",
+      "created_at": "2026-09-18T12:00:00Z",
+      "parts": [
+        {
+          "type": "text",
+          "text": "List available voices."
+        }
+      ]
+    }
+  ],
+  "parameters": {},
+  "execution": {
+    "accepted_output_modes": [
+      "application/json"
+    ],
+    "deadline_ms": 1800000
+  }
+}

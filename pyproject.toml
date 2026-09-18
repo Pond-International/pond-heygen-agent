@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pond-heygen-agent"
+version = "0.3.3"
+description = "A Pond Protocol example for asynchronous HeyGen video generation on Modal"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1", "pydantic==2.11.7", "httpx==0.28.1",
+  "modal>=1.1,<2", "pillow>=11.3,<13", "python-dotenv>=1.1,<2",
+  "jsonschema>=4.25,<5",
+]
+
+[project.urls]
+Repository = "https://github.com/Pond-International/pond-heygen-agent"
+Documentation = "https://github.com/Pond-International/pond-heygen-agent#readme"
+Issues = "https://github.com/Pond-International/pond-heygen-agent/issues"
+
+# Select public source explicitly: ignored local state must never enter a release.
+[tool.hatch.build]
+exclude = [
+  "**/.env", "**/.env.*", "!**/.env.example", "**/.local/**", "**/.worktrees/**",
+  "**/.venv/**", "**/__pycache__/**", "**/.pytest_cache/**",
+  "**/.ruff_cache/**", "**/*.pyc", "**/*.pem", "**/*.key", "**/tests/**",
+  "**/live_smoke.py",
+]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "src/pond_heygen_agent", "examples",
+  "docs/deployment.md", "docs/protocol.md", "docs/action-policy.md",
+  "docs/heygen-coverage.md", "docs/toolset-coverage.md",
+  ".env.example", "README.md", "LICENSE", "pyproject.toml", "uv.lock",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pond_heygen_agent"]
+
+[dependency-groups]
+dev = ["ruff>=0.12,<1"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

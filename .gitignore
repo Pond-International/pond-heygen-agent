@@ -1,0 +1,18 @@
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+.local/
+.worktrees/
+
+# Keep private verification suites and publication artifacts out of this example.
+/tests/
+/src/pond_heygen_agent/live_smoke.py
+*.bundle
+build/
+.DS_Store
